@@ -77,11 +77,6 @@ STRONG_MATCH = [
 
 PARTIAL_MATCH = ["tensorflow", "sklearn", "scikit-learn", "pandas", "sql", "spark", "aws", "gcp"]
 
-# Temporary testing setting:
-# Keep broader recency while validating pipeline volume.
-# Before final production push, change this to 2.
-RECENCY_DAYS = 14
-
 
 def _contains_any(value: str, terms: list[str]) -> bool:
     return any(term in value for term in terms)
@@ -179,7 +174,7 @@ def apply_filters(listing: dict[str, Any], now_utc: datetime | None = None) -> t
     posted_at = _parse_datetime(updated.get("posted_at"))
     if posted_at is not None:
         clock = now_utc or datetime.now(timezone.utc)
-        if posted_at < (clock - timedelta(days=RECENCY_DAYS)):
+        if posted_at < (clock - timedelta(days=14)):  # CHANGE BACK TO 48 HOURS before pushing to GitHub.
             return False, updated
 
     location = str(updated.get("location") or "").strip()
