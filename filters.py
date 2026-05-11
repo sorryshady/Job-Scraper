@@ -75,7 +75,16 @@ STRONG_MATCH = [
     "nlp",
 ]
 
-PARTIAL_MATCH = ["tensorflow", "sklearn", "scikit-learn", "pandas", "sql", "spark", "aws", "gcp"]
+PARTIAL_MATCH = [
+    "tensorflow",
+    "sklearn",
+    "scikit-learn",
+    "pandas",
+    "sql",
+    "spark",
+    "aws",
+    "gcp",
+]
 
 
 def _contains_any(value: str, terms: list[str]) -> bool:
@@ -122,7 +131,10 @@ def classify_role_type(title: str) -> str:
     lowered = (title or "").lower()
     if any(x in lowered for x in ["research", "scientist"]):
         return "Research"
-    if any(x in lowered for x in ["ml engineer", "machine learning engineer", "mlops", "inference"]):
+    if any(
+        x in lowered
+        for x in ["ml engineer", "machine learning engineer", "mlops", "inference"]
+    ):
         return "Startup-MLE"
     if any(x in lowered for x in ["data scientist", "applied scientist"]):
         return "Startup-DS"
@@ -152,7 +164,9 @@ def classify_company_stage(employee_count: int | None) -> str:
     return "Unknown"
 
 
-def apply_filters(listing: dict[str, Any], now_utc: datetime | None = None) -> tuple[bool, dict[str, Any]]:
+def apply_filters(
+    listing: dict[str, Any], now_utc: datetime | None = None
+) -> tuple[bool, dict[str, Any]]:
     """Return (passes, updated_listing)."""
     updated = dict(listing)
     title = str(updated.get("role_title") or "")
@@ -174,7 +188,9 @@ def apply_filters(listing: dict[str, Any], now_utc: datetime | None = None) -> t
     posted_at = _parse_datetime(updated.get("posted_at"))
     if posted_at is not None:
         clock = now_utc or datetime.now(timezone.utc)
-        if posted_at < (clock - timedelta(days=14)):  # CHANGE BACK TO 48 HOURS before pushing to GitHub.
+        if posted_at < (
+            clock - timedelta(days=2)
+        ):  # CHANGE BACK TO 48 HOURS before pushing to GitHub.
             return False, updated
 
     location = str(updated.get("location") or "").strip()
@@ -188,9 +204,12 @@ def apply_filters(listing: dict[str, Any], now_utc: datetime | None = None) -> t
 
 def classify_listing(listing: dict[str, Any]) -> dict[str, Any]:
     updated = dict(listing)
-    updated["f1_friendly"] = classify_f1_friendly(str(updated.get("description_text") or ""))
+    updated["f1_friendly"] = classify_f1_friendly(
+        str(updated.get("description_text") or "")
+    )
     updated["role_type"] = classify_role_type(str(updated.get("role_title") or ""))
-    updated["tech_stack_match"] = classify_tech_stack_match(str(updated.get("description_text") or ""))
+    updated["tech_stack_match"] = classify_tech_stack_match(
+        str(updated.get("description_text") or "")
+    )
     updated["company_stage"] = classify_company_stage(updated.get("employee_count"))
     return updated
-
