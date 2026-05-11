@@ -10,7 +10,6 @@ from notion_client import Client
 from notion_client.errors import APIResponseError
 
 REQUIRED_PROPERTIES = {
-    "Company Name",
     "Role Title",
     "Link to JD",
     "Date Found",
@@ -32,15 +31,36 @@ class NotionJobClient:
     def __init__(self, api_key: str, database_id: str) -> None:
         self.database_id = database_id
         self.client = Client(auth=api_key)
+        self.company_name_property = "Company Name"
 
     def validate_schema(self) -> None:
         database = self.client.databases.retrieve(database_id=self.database_id)
         properties = database.get("properties", {})
         if not isinstance(properties, dict):
             raise RuntimeError("Notion schema fetch returned malformed properties payload.")
+        self.company_name_property = self._resolve_company_name_property(properties)
         missing = sorted(REQUIRED_PROPERTIES - set(properties.keys()))
         if missing:
             raise RuntimeError(f"Notion schema mismatch. Missing properties: {missing}")
+
+    @staticmethod
+    def _resolve_company_name_property(properties: dict[str, Any]) -> str:
+        # Prefer explicit expected name, but support common Notion defaults.
+        candidates = ("Company Name", "Name", "Title")
+        for candidate in candidates:
+            prop = properties.get(candidate)
+            if isinstance(prop, dict) and prop.get("type") == "title":
+                return candidate
+
+        # Last resort: use any property whose type is title.
+        for key, prop in properties.items():
+            if isinstance(prop, dict) and prop.get("type") == "title":
+                return key
+
+        raise RuntimeError(
+            "Notion schema mismatch. Missing title property for company name "
+            "(expected one of: Company Name, Name, Title)."
+        )
 
     def fetch_existing_job_urls(self) -> set[str]:
         urls: set[str] = set()
@@ -80,7 +100,7 @@ class NotionJobClient:
             self.client.pages.create(
                 parent={"database_id": self.database_id},
                 properties={
-                    "Company Name": {"title": [{"text": {"content": str(listing["company_name"])[:2000]}}]},
+                    self.company_name_property: {"title": [{"text": {"content": str(listing["company_name"])[:2000]}}]},
                     "Role Title": {"rich_text": [{"text": {"content": str(listing["role_title"])[:2000]}}]},
                     "Link to JD": {"url": str(listing["url"])},
                     "Date Found": {"date": {"start": today}},

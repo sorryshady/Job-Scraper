@@ -17,6 +17,11 @@ TITLE_KEYWORDS = [
     "computer vision engineer",
     "nlp engineer",
     "deep learning",
+    "python",
+    "data scientist",
+    "applied scientist",
+    "ml platform",
+    "ai/ml",
 ]
 
 EXCLUDE_TITLE_TERMS = [
@@ -71,6 +76,11 @@ STRONG_MATCH = [
 ]
 
 PARTIAL_MATCH = ["tensorflow", "sklearn", "scikit-learn", "pandas", "sql", "spark", "aws", "gcp"]
+
+# Temporary testing setting:
+# Keep broader recency while validating pipeline volume.
+# Before final production push, change this to 2.
+RECENCY_DAYS = 14
 
 
 def _contains_any(value: str, terms: list[str]) -> bool:
@@ -161,9 +171,6 @@ def apply_filters(listing: dict[str, Any], now_utc: datetime | None = None) -> t
     if _contains_any(lowered_title, EXCLUDE_TITLE_TERMS):
         return False, updated
 
-    if _contains_any(lowered_description, ["5+ years", "6+ years", "7+ years", "8+ years", "10+ years"]):
-        return False, updated
-
     employee_count = _normalize_employee_count(updated.get("employee_count"))
     updated["employee_count"] = employee_count
     if employee_count is not None and employee_count >= 200:
@@ -172,7 +179,7 @@ def apply_filters(listing: dict[str, Any], now_utc: datetime | None = None) -> t
     posted_at = _parse_datetime(updated.get("posted_at"))
     if posted_at is not None:
         clock = now_utc or datetime.now(timezone.utc)
-        if posted_at < (clock - timedelta(hours=48)):
+        if posted_at < (clock - timedelta(days=RECENCY_DAYS)):
             return False, updated
 
     location = str(updated.get("location") or "").strip()

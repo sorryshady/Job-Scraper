@@ -18,10 +18,12 @@ from sources.yc_jobs import fetch_jobs as fetch_yc_jobs
 # SOURCE 3 CONFIG
 # Set to True to use Wellfound (Playwright, may be blocked by Cloudflare)
 # Set to False to use Remotive (public JSON API, always reliable)
-USE_WELLFOUND = True
+USE_WELLFOUND = False
 
 
-def _run_source(name: str, fetch_fn: Callable[[], list[dict[str, Any]]]) -> tuple[list[dict[str, Any]], bool]:
+def _run_source(
+    name: str, fetch_fn: Callable[[], list[dict[str, Any]]]
+) -> tuple[list[dict[str, Any]], bool]:
     try:
         jobs = fetch_fn()
     except Exception as exc:  # noqa: BLE001
@@ -58,7 +60,10 @@ def main() -> int:
     source_fetchers: list[tuple[str, Callable[[], list[dict[str, Any]]]]] = [
         ("RemoteOK", fetch_remoteok_jobs),
         ("YC Jobs", fetch_yc_jobs),
-        ("Wellfound" if USE_WELLFOUND else "Remotive", fetch_wellfound_jobs if USE_WELLFOUND else fetch_remotive_jobs),
+        (
+            "Wellfound" if USE_WELLFOUND else "Remotive",
+            fetch_wellfound_jobs if USE_WELLFOUND else fetch_remotive_jobs,
+        ),
     ]
 
     all_jobs: list[dict[str, Any]] = []
@@ -102,4 +107,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
